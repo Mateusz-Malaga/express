@@ -55,8 +55,12 @@ pipeline {
                 sh "docker build -f Dockerfile.production -t ${IMAGE_PROD} ."
                 sh "docker run -d --name express-app -p 3000:3000 ${IMAGE_PROD}"
                 sh "sleep 3"
-                sh "curl -f http://localhost:3000 || exit 1"
-                echo "Smoke test zaliczony"
+                sh '''
+                    IP=$(docker inspect -f "{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}" express-app)
+                    echo "Kontener IP: $IP"
+                    curl -f http://$IP:3000 || exit 1
+                    echo "Smoke test OK"
+                '''
             }
         }
 
