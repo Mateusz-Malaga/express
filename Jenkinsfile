@@ -50,20 +50,22 @@ pipeline {
             }
         }
 
+
         stage('Deploy') {
             steps {
                 sh "docker build -f Dockerfile.production -t ${IMAGE_PROD} ."
-                sh "docker run -d --name express-app ${IMAGE_PROD}"
+                sh "docker network create test-net || true"
+                sh "docker run -d --name express-app --network test-net ${IMAGE_PROD}"
                 sh "sleep 5"
                 sh '''
-                    IP=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' express-app)
-                    echo "Kontener IP: $IP"
-                    curl -f http://$IP:3000 || exit 1
+                    docker run --rm --network test-net curlimages/curl \
+                        curl -f http://express-app:3000 || exit 1
                     echo "Smoke test OK"
                 '''
             }
         }
 
+        
         stage('Publish') {
             steps {
                 sh "mkdir -p artifacts"
